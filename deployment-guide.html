@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback Widget — Deployment Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Inter', sans-serif; background: #f5f5f7; color: #1d1d1f; padding: 40px 20px; font-size: 14px; line-height: 1.6; }
+  .page { max-width: 700px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .intro { color: #6e6e73; font-size: 14px; margin-bottom: 36px; }
+  .step {
+    background: white;
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 17px; font-weight: 700; color: #1d1d1f; }
+  .step-time { font-size: 11px; color: #aeaeb2; margin-left: auto; white-space: nowrap; }
+  p { color: #4a4a4c; margin-bottom: 12px; }
+  p:last-child { margin-bottom: 0; }
+  ol, ul { padding-left: 20px; color: #4a4a4c; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+  code {
+    background: #f5f5f7;
+    border: 1px solid #e5e5ea;
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 12px;
+    color: #6366f1;
+  }
+  .code-block {
+    background: #1d1d1f;
+    color: #a3e635;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 14px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .dim { color: #6e6e73; }
+  .code-block .highlight { color: #f9a8d4; }
+  .callout {
+    background: #fff7ed;
+    border-left: 3px solid #f97316;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #9a3412;
+    margin: 14px 0;
+  }
+  .callout strong { display: block; margin-bottom: 2px; }
+  .tip {
+    background: #f0fdf4;
+    border-left: 3px solid #22c55e;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #166534;
+    margin: 14px 0;
+  }
+  .files {
+    background: #f5f3ff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 14px 0;
+  }
+  .file-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #e9d5ff; font-size: 13px; }
+  .file-row:last-child { border-bottom: none; }
+  .file-name { font-family: monospace; color: #6366f1; font-weight: 600; flex: 1; }
+  .file-desc { color: #6e6e73; font-size: 12px; }
+  .done-badge { display: inline-block; background: #dcfce7; color: #16a34a; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+  h2 { font-size: 13px; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.6px; margin: 16px 0 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Feedback Widget — Deployment Guide</h1>
+  <p class="intro">Four steps to get the feedback widget live and attached to the AI Paraphrasing prototype. Total time: ~20 minutes.</p>
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Set up Supabase</div>
+      <div class="step-time">~5 min</div>
+    </div>
+    <p>Supabase stores the feedback pins. It's free, no credit card required.</p>
+    <ol>
+      <li>Go to <strong>supabase.com</strong> → sign up → click <strong>New project</strong></li>
+      <li>Name it <code>build-au-feedback</code>, choose a region close to Australia</li>
+      <li>In the sidebar go to <strong>SQL Editor</strong> and run this query:</li>
+    </ol>
+    <div class="code-block">create table feedback_pins (
+  id               uuid default gen_random_uuid() primary key,
+  prototype_id     text not null,
+  x_pct            float not null,
+  y_pct            float not null,
+  comment          text not null,
+  author_name      text,
+  element_context  text,
+  screenshot       text,
+  created_at       timestamptz default now()
+);
+
+alter table feedback_pins enable row level security;
+
+create policy "Anyone can insert" on feedback_pins
+  for insert with check (true);
+create policy "Anyone can read" on feedback_pins
+  for select using (true);
+create policy "Anyone can delete" on feedback_pins
+  for delete using (true);</div>
+    <ol start="4">
+      <li>Go to <strong>Project Settings → API</strong></li>
+      <li>Copy the <strong>Project URL</strong> and the <strong>anon / public key</strong> — you'll need both in Step 2</li>
+    </ol>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Configure the widget</div>
+      <div class="step-time">~2 min</div>
+    </div>
+    <p>Open <code>FeedbackWidget/feedback-widget.js</code> and fill in your Supabase credentials at the top of the file:</p>
+    <div class="code-block"><span class="dim">// ═══ CONFIGURATION — fill these in ═══</span>
+const SUPABASE_URL      = '<span class="highlight">https://xxxxxxxxxxxx.supabase.co</span>';
+const SUPABASE_ANON_KEY = '<span class="highlight">eyJhbGci...</span>';
+const ADMIN_PASSWORD    = 'B3tterSoftware2026!';  <span class="dim">// change if you like</span></div>
+    <div class="callout">
+      <strong>Note on the anon key</strong>
+      The anon key is designed to be public — it's safe to commit it to GitHub. Supabase's Row Level Security policies control what it can actually do.
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Create GitHub repo and deploy to Vercel</div>
+      <div class="step-time">~10 min</div>
+    </div>
+    <p>The <code>FeedbackWidget</code> folder is ready to be pushed as a GitHub repo. It contains:</p>
+    <div class="files">
+      <div class="file-row"><span class="file-name">feedback-widget.js</span><span class="file-desc">The widget (fill in credentials first)</span></div>
+      <div class="file-row"><span class="file-name">vercel.json</span><span class="file-desc">Sets cache + CORS headers <span class="done-badge">✓ Done</span></span></div>
+      <div class="file-row"><span class="file-name">index.html</span><span class="file-desc">Simple landing page <span class="done-badge">✓ Done</span></span></div>
+      <div class="file-row"><span class="file-name">feedback-setup.md</span><span class="file-desc">Setup reference doc</span></div>
+      <div class="file-row"><span class="file-name">deployment-guide.html</span><span class="file-desc">This file</span></div>
+    </div>
+
+    <h2>On GitHub</h2>
+    <ol>
+      <li>Go to <strong>github.com</strong> → New repository</li>
+      <li>Name it <code>build-au-feedback-widget</code> (or similar)</li>
+      <li>Make it <strong>Public</strong> (Vercel free tier requires public repos, or use your Vercel team account for private)</li>
+      <li>Push the contents of the <code>FeedbackWidget</code> folder as the repo root</li>
+    </ol>
+
+    <h2>On Vercel</h2>
+    <ol>
+      <li>Go to <strong>vercel.com</strong> → Add New Project</li>
+      <li>Import the <code>build-au-feedback-widget</code> GitHub repo</li>
+      <li>No build settings needed — Vercel detects it as a static site</li>
+      <li>Click <strong>Deploy</strong></li>
+      <li>Note your deployment URL — by default it will be something like <code>build-au-feedback-widget.vercel.app</code></li>
+    </ol>
+
+    <div class="tip">
+      You can set a custom domain in Vercel if you want a cleaner URL, e.g. <code>feedback.yourdomain.com</code>.
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">Connect to the Paraphrasing prototype</div>
+      <div class="step-time">~2 min</div>
+    </div>
+    <p>The script tag has already been added to <code>Paraphrase/deploy/index.html</code>. It currently points to:</p>
+    <div class="code-block"><span class="dim">&lt;!-- near the bottom of the file, before &lt;/body&gt; --&gt;</span>
+&lt;script src="<span class="highlight">https://build-au-feedback-widget.vercel.app</span>/feedback-widget.js"&gt;&lt;/script&gt;</div>
+    <p>If your Vercel URL is different from <code>build-au-feedback-widget.vercel.app</code>, update the URL in that script tag. Then redeploy the paraphrasing prototype to Vercel as normal.</p>
+
+    <h2>To add to future prototypes</h2>
+    <p>Add this single line before <code>&lt;/body&gt;</code> in any prototype HTML file — that's it:</p>
+    <div class="code-block">&lt;script src="https://build-au-feedback-widget.vercel.app/feedback-widget.js"&gt;&lt;/script&gt;</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" style="background:#22c55e">✓</div>
+      <div class="step-title">Once live — how it works</div>
+    </div>
+    <ul>
+      <li><strong>Reviewers</strong> open the prototype URL, click <strong>Feedback</strong>, click anywhere to drop a pin, enter their name and comment → saved to Supabase instantly</li>
+      <li><strong>You</strong> click <strong>Review</strong>, enter password (<code>B3tterSoftware2026!</code>), see all pins with screenshots and element context</li>
+      <li>Click <strong>Export for Claude</strong> to copy a formatted summary you can paste directly into Claude for AI-assisted analysis</li>
+      <li>Click <strong>✓ Resolved — delete</strong> to clear addressed items</li>
+      <li>Pins are scoped by URL path — the same widget file serves multiple prototypes without comments mixing</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
