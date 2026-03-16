@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build AU — Prototype Feedback Widget</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Inter', sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .card {
+    background: white;
+    border-radius: 18px;
+    padding: 48px 52px;
+    max-width: 620px;
+    width: 100%;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2ff;
+    color: #6366f1;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    letter-spacing: 0.3px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d1d1f;
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: #6e6e73;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+  .code-block {
+    background: #1d1d1f;
+    color: #a3e635;
+    border-radius: 10px;
+    padding: 18px 22px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #aeaeb2;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .feature-list {
+    margin-top: 32px;
+    border-top: 1px solid #f0f0f2;
+    padding-top: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .feature {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .feature-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f5f3ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .feature-text strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 2px;
+  }
+  .feature-text span {
+    font-size: 12px;
+    color: #6e6e73;
+    line-height: 1.5;
+  }
+  .footer {
+    margin-top: 32px;
+    font-size: 12px;
+    color: #aeaeb2;
+    text-align: center;
+  }
+  /* Password gate */
+  .pw-overlay {
+    position: fixed; inset: 0;
+    background: #f5f5f7;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .pw-overlay.hidden { display: none; }
+  .pw-box {
+    background: white; border-radius: 18px;
+    padding: 40px 44px; width: 360px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+  .pw-box h2 { font-size: 18px; font-weight: 700; color: #1d1d1f; margin-bottom: 6px; }
+  .pw-box p { font-size: 13px; color: #6e6e73; margin-bottom: 22px; }
+  .pw-box input {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid #e5e5ea; border-radius: 9px;
+    font-size: 14px; font-family: inherit; text-align: center;
+    outline: none; margin-bottom: 10px; display: block;
+  }
+  .pw-box input:focus { border-color: #6366f1; }
+  .pw-err { font-size: 12px; color: #ef4444; min-height: 18px; margin-bottom: 8px; }
+  .pw-box button {
+    width: 100%; padding: 11px;
+    background: #6366f1; color: white; border: none;
+    border-radius: 9px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .pw-box button:hover { background: #4f46e5; }
+</style>
+</head>
+<body>
+
+<!-- Password gate -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <h2>Build AU</h2>
+    <p>Enter the password to access the feedback widget page.</p>
+    <input type="password" id="pwInput" placeholder="Password"
+      onkeydown="if(event.key==='Enter') checkPw()">
+    <div class="pw-err" id="pwErr"></div>
+    <button onclick="checkPw()">Continue</button>
+  </div>
+</div>
+<script>
+  function checkPw() {
+    if (document.getElementById('pwInput').value === 'objective2026') {
+      document.getElementById('pwOverlay').classList.add('hidden');
+    } else {
+      document.getElementById('pwErr').textContent = 'Incorrect password — try again';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+  document.getElementById('pwInput').focus();
+</script>
+
+<div class="card">
+  <div class="badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Build AU · Feedback Widget v2
+  </div>
+  <h1>Prototype Feedback Widget</h1>
+  <p class="subtitle">A lightweight, drop-in feedback overlay for Build AU prototypes. Reviewers place numbered pins anywhere on screen and leave comments. You review and resolve them from a password-protected panel.</p>
+
+  <div class="code-label">Add to any prototype — one line</div>
+  <div class="code-block">&lt;script src="<span style="color:#f9a8d4">https://build-au-feedback-widget.vercel.app/feedback-widget.js</span>"&gt;&lt;/script&gt;</div>
+  <p style="font-size:12px; color:#6e6e73; margin-bottom:4px;">Place this just before the closing <code style="background:#f5f5f7; padding:2px 5px; border-radius:4px; font-size:11px;">&lt;/body&gt;</code> tag of any prototype HTML file.</p>
+
+  <div class="feature-list">
+    <div class="feature">
+      <div class="feature-icon">📌</div>
+      <div class="feature-text">
+        <strong>Numbered pins</strong>
+        <span>Click anywhere to place a pin and leave a comment</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📸</div>
+      <div class="feature-text">
+        <strong>Screenshots</strong>
+        <span>Captures the area around each pin automatically</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-text">
+        <strong>Review panel</strong>
+        <span>Password-protected panel to read and resolve comments</span>
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🤖</div>
+      <div class="feature-text">
+        <strong>Export for Claude</strong>
+        <span>One-click export of all feedback for AI-assisted review</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Objective Corporation · Build AU · Internal use only</div>
+</div>
+</body>
+</html>
