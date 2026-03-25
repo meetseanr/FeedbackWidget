@@ -194,7 +194,7 @@
 
       /* Floating buttons */
       #fb-btn-feedback {
-        position:fixed; bottom:24px; right:24px; z-index:10000;
+        position:fixed; bottom:24px; left:24px; z-index:10000;
         background:#6366f1; color:white; border:none; cursor:pointer;
         padding:10px 18px; border-radius:22px; font-size:13px; font-weight:600;
         box-shadow:0 4px 14px rgba(99,102,241,0.45);
@@ -204,7 +204,7 @@
       #fb-btn-feedback.fb-cancel { background:#ef4444; box-shadow:0 4px 14px rgba(239,68,68,0.4); }
 
       #fb-btn-review {
-        position:fixed; bottom:24px; right:170px; z-index:10000;
+        position:fixed; bottom:24px; left:170px; z-index:10000;
         background:white; color:#6366f1; border:1.5px solid #c7d2fe; cursor:pointer;
         padding:10px 16px; border-radius:22px; font-size:13px; font-weight:600;
         box-shadow:0 2px 8px rgba(0,0,0,0.08);
