@@ -775,16 +775,17 @@
       toast('No screenshots available to download.');
       return;
     }
-    // Stagger downloads slightly so browsers don't block them
-    pinsWithScreenshots.forEach(({ pin, num }, idx) => {
-      setTimeout(() => {
-        const a = document.createElement('a');
-        a.href     = pin.screenshot;
-        a.download = `pin-${num}-screenshot.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }, idx * 300);
+    // Trigger all downloads synchronously within the user gesture context.
+    // setTimeout would sever the gesture chain and cause browsers to block downloads.
+    // Data URLs (base64) download synchronously so staggering is not needed.
+    pinsWithScreenshots.forEach(({ pin, num }) => {
+      const a = document.createElement('a');
+      a.href          = pin.screenshot;
+      a.download      = `pin-${num}-screenshot.jpg`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     });
     toast(`⬇ Downloading ${pinsWithScreenshots.length} screenshot${pinsWithScreenshots.length > 1 ? 's' : ''}…`);
   };
