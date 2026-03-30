@@ -93,7 +93,7 @@
       toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
       const full = await window.html2canvas(document.documentElement, {
-        scale:      1.5,
+        scale:      2.25,
         useCORS:    true,
         logging:    false,
         windowWidth:  window.innerWidth,
@@ -105,7 +105,7 @@
       toHide.forEach(el => { el.style.visibility = ''; });
 
       // Crop around pin
-      const CROP_W = 560, CROP_H = 380;
+      const CROP_W = 840, CROP_H = 570;
       const pinX   = (xPct / 100) * full.width;
       const pinY   = (yPct / 100) * full.height;
       const sx     = Math.max(0, Math.min(pinX - CROP_W / 2, full.width  - CROP_W));
@@ -134,7 +134,7 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      return crop.toDataURL('image/jpeg', 0.72);
+      return crop.toDataURL('image/jpeg', 0.85);
     } catch (err) {
       console.warn('[FeedbackWidget] Screenshot failed:', err);
       return null;
