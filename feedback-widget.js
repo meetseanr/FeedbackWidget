@@ -93,7 +93,7 @@
       toHide.forEach(el => { el.style.visibility = 'hidden'; });
 
       const full = await window.html2canvas(document.documentElement, {
-        scale:      0.6,
+        scale:      1.5,
         useCORS:    true,
         logging:    false,
         windowWidth:  window.innerWidth,
@@ -105,7 +105,7 @@
       toHide.forEach(el => { el.style.visibility = ''; });
 
       // Crop around pin
-      const CROP_W = 420, CROP_H = 280;
+      const CROP_W = 560, CROP_H = 380;
       const pinX   = (xPct / 100) * full.width;
       const pinY   = (yPct / 100) * full.height;
       const sx     = Math.max(0, Math.min(pinX - CROP_W / 2, full.width  - CROP_W));
@@ -134,7 +134,7 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      return crop.toDataURL('image/jpeg', 0.45);
+      return crop.toDataURL('image/jpeg', 0.72);
     } catch (err) {
       console.warn('[FeedbackWidget] Screenshot failed:', err);
       return null;
@@ -415,6 +415,9 @@
       }
       .fb-copy-btn { background:#6366f1; color:white; border:none; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
       .fb-copy-btn:hover { background:#4f46e5; }
+      .fb-dl-btn { background:#f0fdf4; color:#16a34a; border:1.5px solid #bbf7d0; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+      .fb-dl-btn:hover { background:#dcfce7; }
+      .fb-dl-btn:disabled { opacity:0.5; cursor:not-allowed; }
     `;
     document.head.appendChild(s);
   }
@@ -478,12 +481,14 @@
             <button class="fb-panel-close" onclick="document.getElementById('fb-export-modal').classList.remove('open')">✕</button>
           </div>
           <div class="fb-export-body">
-            <p>Copy the text below and paste it into your Claude conversation. Claude can read the comments and see the screenshot of exactly where each pin was placed.</p>
+            <p><strong>Step 1:</strong> Click <em>Download screenshots</em> — one image file per pin will save to your Downloads folder.</p>
+            <p><strong>Step 2:</strong> Click <em>Copy prompt</em> and paste it into Claude. Then attach the downloaded screenshot files to the same message.</p>
             <textarea class="fb-export-textarea" id="fb-export-text" readonly></textarea>
           </div>
           <div class="fb-export-foot">
             <button class="fb-btn fb-btn-cancel" onclick="document.getElementById('fb-export-modal').classList.remove('open')">Close</button>
-            <button class="fb-copy-btn" onclick="window._fbCopyExport()">Copy to clipboard</button>
+            <button class="fb-dl-btn" id="fb-dl-screenshots-btn" onclick="window._fbDownloadScreenshots()">⬇ Download screenshots</button>
+            <button class="fb-copy-btn" onclick="window._fbCopyExport()">Copy prompt</button>
           </div>
         </div>
       </div>
@@ -712,9 +717,9 @@
   }
 
   // ─── Export for Claude ────────────────────────────────────────────────────
-  // Generates a structured text block with embedded base64 screenshots.
-  // When pasted into a Claude conversation, Claude can read the comments
-  // AND visually inspect the screenshots to see exactly what was clicked.
+  // Generates a text-only prompt (no base64) for pasting into Claude.
+  // Screenshots are downloaded separately as individual image files so the
+  // user can attach them to the Claude conversation — keeping the prompt short.
 
   window._fbExport = function () {
     if (!pins.length) {
@@ -722,7 +727,12 @@
       return;
     }
 
-    const header = `# Prototype Feedback — ${PROTOTYPE_NAME}\nExported: ${new Date().toLocaleString('en-AU')}\nPrototype: ${PROTOTYPE_ID}\nTotal pins: ${pins.length}\n\n---\n\n`;
+    const hasScreenshots = pins.some(p => p.screenshot);
+    const screenshotNote = hasScreenshots
+      ? `Screenshots: ${pins.filter(p => p.screenshot).length} image file(s) — download using the button below and attach to this Claude message.\n`
+      : '';
+
+    const header = `# Prototype Feedback — ${PROTOTYPE_NAME}\nExported: ${new Date().toLocaleString('en-AU')}\nPrototype: ${PROTOTYPE_ID}\nTotal pins: ${pins.length}\n${screenshotNote}\n---\n\n`;
 
     const body = pins.map((pin, i) => {
       const d = new Date(pin.created_at);
@@ -738,16 +748,45 @@
       }
       lines.push(`**Position:** x=${pin.x_pct.toFixed(1)}%, y=${pin.y_pct.toFixed(1)}%`);
       if (pin.screenshot) {
-        lines.push(`**Screenshot:** ![Pin ${i+1} screenshot](${pin.screenshot})`);
+        lines.push(`**Screenshot:** see attached file pin-${i + 1}-screenshot.jpg`);
       }
       return lines.join('\n');
     }).join('\n\n---\n\n');
 
-    const instructions = `\n\n---\n\n*Please review the feedback above. For each pin, the screenshot shows the exact area of the prototype the reviewer was looking at when they left their comment. Please summarise the issues, identify themes, and suggest priorities.*`;
+    const instructions = `\n\n---\n\n*Please review the feedback above. For each pin, the attached screenshot shows the exact area of the prototype the reviewer was looking at. Please summarise the issues, identify themes, and suggest priorities.*`;
 
     const full = header + body + instructions;
     document.getElementById('fb-export-text').value = full;
+
+    // Show/hide download button based on whether any screenshots exist
+    const dlBtn = document.getElementById('fb-dl-screenshots-btn');
+    if (dlBtn) dlBtn.style.display = hasScreenshots ? '' : 'none';
+
     document.getElementById('fb-export-modal').classList.add('open');
+  };
+
+  // ─── Download screenshots ─────────────────────────────────────────────────
+  // Triggers individual file downloads for each pin screenshot.
+  // Files are named pin-1-screenshot.jpg, pin-2-screenshot.jpg, etc.
+
+  window._fbDownloadScreenshots = function () {
+    const pinsWithScreenshots = pins.map((pin, i) => ({ pin, num: i + 1 })).filter(({ pin }) => pin.screenshot);
+    if (!pinsWithScreenshots.length) {
+      toast('No screenshots available to download.');
+      return;
+    }
+    // Stagger downloads slightly so browsers don't block them
+    pinsWithScreenshots.forEach(({ pin, num }, idx) => {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href     = pin.screenshot;
+        a.download = `pin-${num}-screenshot.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, idx * 300);
+    });
+    toast(`⬇ Downloading ${pinsWithScreenshots.length} screenshot${pinsWithScreenshots.length > 1 ? 's' : ''}…`);
   };
 
   window._fbCopyExport = function () {
